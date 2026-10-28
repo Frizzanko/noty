@@ -26,6 +26,7 @@ struct StickyNote: Codable {
     var order: Double
     var textDirection: NoteTextDirection?
     var pinned: Bool?
+    var profile: Int?
 
     init(_ n: Note) {
         id = n.id; title = n.title; body = n.body
@@ -34,13 +35,14 @@ struct StickyNote: Codable {
         archived = n.archived; order = n.order
         textDirection = n.textDirection
         pinned = n.pinned
+        profile = n.profile
     }
 
     var note: Note {
         Note(id: id, title: title,
              body: body, color: color, created: created, modified: modified,
              archived: archived, pinned: pinned ?? false, textDirection: textDirection ?? .automatic,
-             order: order)
+             order: order, profile: profile ?? 0)
     }
 }
 

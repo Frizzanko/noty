@@ -238,3 +238,11 @@
 "storage.error_help" = "原始数据已保留。未保存的编辑仍保留在本次会话中。请解决存储问题后重试；Noty 会在退出前重新尝试保存。";
 "storage.import_unsaved" = "部分导入的便笺无法保存。";
 "import.invalid_archive" = "此归档无效或使用了不受支持的版本。";
+"profile.personal" = "个人";
+"profile.work" = "工作";
+"action.move_to_profile" = "移动到档案";
+"menu.profile" = "档案";
+"profile.migration.title" = "将现有便笺分配到档案";
+"profile.migration.body" = "选择现有便笺应归属的档案。";
+"profile.add" = "新建档案";
+"profile.delete_current" = "删除当前档案";

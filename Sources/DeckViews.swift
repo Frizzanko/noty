@@ -236,7 +236,7 @@ struct FanColumn: View {
     /// explicit `zIndex` per tab is *not* equivalent — it reorders neighbours and
     /// breaks the shingle.
     private var stack: some View {
-        let total = notes.count + (hiddenCount > 0 ? 1 : 0) + (layout.showsActions ? 2 : 0)
+        let total = notes.count + (hiddenCount > 0 ? 1 : 0) + (layout.showsActions ? 3 : 0)
         return VStack(spacing: layout.spacing) {
             if notes.isEmpty {
                 EmptyTab(height: layout.itemHeight, strip: layout.pitch, onRight: onRight) {
@@ -309,9 +309,12 @@ struct FanColumn: View {
                 PlusButton { (NSApp.delegate as? AppDelegate)?.newNote() }
                     .padding(.top, DeckGeom.plusGap - layout.spacing)
                     .staged(index: notes.count + (hiddenCount > 0 ? 1 : 0), total: total, revealed: isRevealed, onRight: onRight)
-                CogButton { (NSApp.delegate as? AppDelegate)?.openSettings() }
+                ProfileButton()
                     .padding(.top, DeckGeom.cogGap - layout.spacing)
                     .staged(index: notes.count + (hiddenCount > 0 ? 1 : 0) + 1, total: total, revealed: isRevealed, onRight: onRight)
+                CogButton { (NSApp.delegate as? AppDelegate)?.openSettings() }
+                    .padding(.top, DeckGeom.cogGap - layout.spacing)
+                    .staged(index: notes.count + (hiddenCount > 0 ? 1 : 0) + 2, total: total, revealed: isRevealed, onRight: onRight)
             }
         }
         .frame(width: DeckGeom.tabWidth)
@@ -830,6 +833,32 @@ struct CogButton: View {
         .help(L10n.text("help.settings"))
     }
 }
+struct ProfileButton: View {
+    @ObservedObject var store: NoteStore = NoteStore.shared
+    @State private var hovering = false
+    var body: some View {
+        Button {
+            let count = max(1, Settings.profiles.count)
+            let next = (store.activeProfile + 1) % count
+            NoteStore.shared.setProfile(next)
+            (NSApp.delegate as? AppDelegate)?.refreshDecks()
+        } label: {
+            Image(systemName: store.activeProfile == 0 ? "house.fill" : (store.activeProfile == 1 ? "briefcase.fill" : "folder.fill"))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.primary.opacity(hovering ? 0.85 : 0.6))
+                .frame(width: DeckGeom.cogSize, height: DeckGeom.cogSize)
+                .background(Circle().fill(.regularMaterial)
+                    .shadow(color: .black.opacity(0.18), radius: 4, y: 1))
+                .scaleEffect(hovering ? 1.08 : 1)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
+        .help(Settings.profiles.indices.contains(store.activeProfile) ? Settings.profiles[store.activeProfile] : "")
+        .accessibilityLabel(Settings.profiles.indices.contains(store.activeProfile) ? Settings.profiles[store.activeProfile] : "")
+    }
+    }
 
 // MARK: - Shared bits
 
@@ -841,6 +870,11 @@ extension View {
             Button(L10n.text("help.cycle_colour")) { NoteStore.shared.cycleColor(id: note.id) }
             Divider()
             Button(L10n.text("action.delete")) { NoteStore.shared.delete(id: note.id) }
+            Menu(L10n.text("action.move_to_profile")) {
+                ForEach(Array(Settings.profiles.enumerated()), id: \.offset) { idx, name in
+                    Button(name) { NoteStore.shared.setNoteProfile(id: note.id, profile: idx) }
+                }
+            }
             // With the deck's + and cog buttons hidden (issue #36 toggle), a
             // tab's menu is the only pointer-reachable door to these two.
             if Settings.deckAlwaysShown && Settings.deckHideActions {

@@ -31,7 +31,8 @@ final class Store {
           archived INTEGER NOT NULL DEFAULT 0,
           sort_order REAL NOT NULL DEFAULT 0,
           pinned INTEGER NOT NULL DEFAULT 0,
-          text_direction TEXT NOT NULL DEFAULT 'automatic'
+          text_direction TEXT NOT NULL DEFAULT 'automatic',
+          profile INTEGER NOT NULL DEFAULT 0
         );
         """)
         exec("CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived, sort_order);")
@@ -64,6 +65,10 @@ final class Store {
             exec("ALTER TABLE notes ADD COLUMN text_direction TEXT NOT NULL DEFAULT 'automatic';")
             NSLog("Noty: migrated notes table — added text direction")
         }
+        if !existing.contains("profile") {
+            exec("ALTER TABLE notes ADD COLUMN profile INTEGER NOT NULL DEFAULT 0;")
+            NSLog("Noty: migrated notes table — added profile")
+        }
     }
 
     deinit { if let db { sqlite3_close_v2(db) } }
@@ -95,7 +100,7 @@ final class Store {
     private func readNotes() throws -> [Note] {
         var out: [Note] = []
         var st: OpaquePointer?
-        let sql = "SELECT id,title,body,color,created,modified,archived,sort_order,pinned,text_direction FROM notes ORDER BY sort_order ASC;"
+        let sql = "SELECT id,title,body,color,created,modified,archived,sort_order,pinned,text_direction,profile FROM notes ORDER BY sort_order ASC;"
         guard sqlite3_prepare_v2(db, sql, -1, &st, nil) == SQLITE_OK else { throw databaseError() }
         defer { sqlite3_finalize(st) }
         var result = sqlite3_step(st)
@@ -115,6 +120,7 @@ final class Store {
             n.pinned = sqlite3_column_int(st, 8) != 0
             let rawDirection = sqlite3_column_text(st, 9).map { String(cString: $0) }
             n.textDirection = rawDirection.flatMap(NoteTextDirection.init(rawValue:)) ?? .automatic
+            n.profile = Int(sqlite3_column_int(st, 10))
             out.append(n)
             result = sqlite3_step(st)
         }
@@ -128,13 +134,13 @@ final class Store {
         if let failure { throw failure }
         guard NoteColor.all.indices.contains(n.color) else { throw PersistenceError.invalidColor }
         let sql = """
-        INSERT INTO notes (id,title,body,color,created,modified,archived,sort_order,pinned,text_direction)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO notes (id,title,body,color,created,modified,archived,sort_order,pinned,text_direction,profile)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
           title=excluded.title, body=excluded.body, color=excluded.color,
           modified=excluded.modified, archived=excluded.archived,
           sort_order=excluded.sort_order, pinned=excluded.pinned,
-          text_direction=excluded.text_direction;
+          text_direction=excluded.text_direction, profile=excluded.profile;
         """
         var st: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &st, nil) == SQLITE_OK else { throw databaseError() }
@@ -152,6 +158,7 @@ final class Store {
         sqlite3_bind_double(st, 8, n.order)
         sqlite3_bind_int(st, 9, n.pinned ? 1 : 0)
         sqlite3_bind_text(st, 10, n.textDirection.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(st, 11, Int32(n.profile))
         if sqlite3_step(st) != SQLITE_DONE {
             throw databaseError()
         }

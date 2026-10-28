@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         deckManager = DeckManager()
         restoreAfterLanguageRelaunch()
         UndoToast.shared.start()
+        migrateProfilesIfNeeded()
 
         HotKeys.shared.register(
             newNote: { [weak self] in self?.newNote() },
@@ -44,6 +45,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    private func migrateProfilesIfNeeded() {
+        let key = "profileMigrationPrompted"
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: key) else { return }
+        defer { defaults.set(true, forKey: key) }
+        guard !NoteStore.shared.notes.isEmpty else { return }
+        let alert = NSAlert()
+        alert.messageText = L10n.text("profile.migration.title")
+        alert.informativeText = L10n.text("profile.migration.body")
+        alert.addButton(withTitle: L10n.text("profile.personal"))
+        alert.addButton(withTitle: L10n.text("profile.work"))
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertSecondButtonReturn {
+            NoteStore.shared.assignAllNotes(toProfile: 1)
+        }
+    }
+    @objc func setProfile(_ sender: NSMenuItem) {
+        guard let profile = sender.representedObject as? Int else { return }
+        NoteStore.shared.setProfile(profile)
+        deckManager.refreshAll()
+    }
 
     // MARK: Actions
 
@@ -142,10 +165,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Settings.launchAtLogin.toggle()
     }
 
-    @objc func exportMarkdown()  { Transfer.export(.markdown,  notes: NoteStore.shared.notes) }
-    @objc func exportPlainText() { Transfer.export(.plainText, notes: NoteStore.shared.notes) }
-    @objc func exportSingleFile(){ Transfer.export(.singleFile, notes: NoteStore.shared.notes) }
-    @objc func exportStickies()  { Transfer.export(.stickies,  notes: NoteStore.shared.notes) }
+    @objc func exportMarkdown()  { Transfer.export(.markdown,  notes: NoteStore.shared.profileNotes) }
+    @objc func exportPlainText() { Transfer.export(.plainText, notes: NoteStore.shared.profileNotes) }
+    @objc func exportSingleFile(){ Transfer.export(.singleFile, notes: NoteStore.shared.profileNotes) }
+    @objc func exportStickies()  { Transfer.export(.stickies,  notes: NoteStore.shared.profileNotes) }
     @objc func importStickies()  { Transfer.importFiles() }
 
     @objc func checkForUpdates() { Updater.shared.checkForUpdates() }

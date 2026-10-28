@@ -65,6 +65,7 @@ enum CloudSyncTests {
         pinned: true
         order: -2.5
         direction: rightToLeft
+        profile: 0
         title: Shopping
         ---
 

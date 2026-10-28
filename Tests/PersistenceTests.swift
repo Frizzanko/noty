@@ -13,6 +13,8 @@ enum PersistenceTests {
             try testSharedEditing(directory, check)
             try testCryptoFailures(directory, check)
             try testExport(directory, check)
+            try testProfiles(directory, check)
+            NoteStore.shared.setProfile(0)
             try testArchives(directory, check)
             testTasks(check)
         } catch { check(false, "Persistence regression failed: \(error)") }
@@ -179,4 +181,21 @@ enum PersistenceTests {
         check(Tasks.fromMarkdown("- [ ] One\r\n- [x] Two") == "☐ One\r\n☑ Two",
               "checklist import must handle Windows line endings")
     }
+    private static func testProfiles(_ dir: URL, _ check: (Bool, String) -> Void) throws {
+        let url = dir.appendingPathComponent("profiles.db")
+        let storage = Store(dbURL: url, keyURL: dir.appendingPathComponent("profiles.key"))
+        var errors = 0
+        let model = NoteStore(store: storage, seedWelcome: false, onError: { _ in errors += 1 })
+        model.setProfile(0)
+        _ = model.create(body: "Personal")
+        let work = model.create(body: "Work")
+        model.setNoteProfile(id: work.id, profile: 1)
+        check(model.active.map(\.body) == ["Personal"],
+              "only the active profile's notes should show")
+        model.setProfile(1)
+        check(model.active.map(\.body) == ["Work"],
+              "switching profiles should switch the visible notes")
+        check(errors == 0, "profile operations must not report storage errors")
+    }
+
 }

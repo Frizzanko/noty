@@ -8,6 +8,7 @@ final class NoteStore: ObservableObject {
     static let shared = NoteStore()
 
     @Published private(set) var notes: [Note] = []
+    @Published private(set) var activeProfile: Int = Settings.activeProfile
     /// Set when a note is deleted, cleared after the 10 s undo window elapses.
     @Published var pendingUndo: PendingDelete?
 
@@ -94,10 +95,50 @@ final class NoteStore: ObservableObject {
 
     // MARK: Derived collections
 
-    var active: [Note] { notes.filter { !$0.archived }.sorted { $0.order < $1.order } }
-    var archived: [Note] { notes.filter { $0.archived }.sorted { $0.modified > $1.modified } }
+    var active: [Note] { notes.filter { !$0.archived && $0.profile == activeProfile }.sorted { $0.order < $1.order } }
+    var archived: [Note] { notes.filter { $0.archived && $0.profile == activeProfile }.sorted { $0.modified > $1.modified } }
+    var profileNotes: [Note] { notes.filter { $0.profile == activeProfile } }
 
     func note(id: String) -> Note? { notes.first { $0.id == id } }
+    func setProfile(_ profile: Int) {
+        let clamped = min(max(profile, 0), max(0, Settings.profiles.count - 1))
+        activeProfile = clamped
+        Settings.activeProfile = clamped
+    }
+    func deleteProfile(at index: Int) {
+        guard Settings.profiles.count > 1, Settings.profiles.indices.contains(index) else { return }
+        guard writable else { return }
+        for i in notes.indices where notes[i].profile == index {
+            notes[i].profile = 0
+            notes[i].modified = Date()
+            persist(notes[i])
+        }
+        for i in notes.indices where notes[i].profile > index {
+            notes[i].profile -= 1
+            persist(notes[i])
+        }
+        Settings.deleteProfile(at: index)
+        if activeProfile == index { setProfile(0) }
+        else if activeProfile > index { setProfile(activeProfile - 1) }
+    }
+    func setNoteProfile(id: String, profile: Int) {
+        guard writable, let i = notes.firstIndex(where: { $0.id == id }) else { return }
+        let clamped = min(max(profile, 0), max(0, Settings.profiles.count - 1))
+        guard notes[i].profile != clamped else { return }
+        notes[i].profile = clamped
+        notes[i].modified = Date()
+        persist(notes[i])
+    }
+    /// One-time profile migration: move every existing note to `profile`.
+    func assignAllNotes(toProfile profile: Int) {
+        guard writable else { return }
+        for i in notes.indices {
+            guard notes[i].profile != profile else { continue }
+            notes[i].profile = profile
+            notes[i].modified = Date()
+            persist(notes[i])
+        }
+    }
 
     // MARK: Mutations
 
@@ -105,7 +146,8 @@ final class NoteStore: ObservableObject {
     func create(body: String = "", title: String = "", color: Int? = nil) -> Note {
         var n = Note()
         n.order = (active.map(\.order).min() ?? 0) - 1   // newest sits at the top of the deck
-        n.color = color ?? (notes.count % NoteColor.all.count)
+        n.profile = activeProfile
+        n.color = color ?? (profileNotes.count % NoteColor.all.count)
         n.body = body
         n.title = title
         guard writable else { return n }

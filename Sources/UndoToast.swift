@@ -10,10 +10,10 @@ final class UndoToast {
     private var bag = Set<AnyCancellable>()
 
     func start() {
-        NoteStore.shared.$pendingUndo
+        Publishers.CombineLatest(NoteStore.shared.$pendingUndo, NoteStore.shared.$activeProfile)
             .receive(on: RunLoop.main)
-            .sink { [weak self] pending in
-                if let pending { self?.show(pending) } else { self?.hide() }
+            .sink { [weak self] pending, profile in
+                if let pending, pending.note.profile == profile { self?.show(pending) } else { self?.hide() }
             }
             .store(in: &bag)
     }

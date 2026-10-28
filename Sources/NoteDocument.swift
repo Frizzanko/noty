@@ -21,10 +21,11 @@ enum NoteDocument {
         static let pinned = "pinned"
         static let order = "order"
         static let direction = "direction"
+        static let profile = "profile"
         static let title = "title"
 
         static let all: Set<String> = [id, color, created, modified,
-                                       archived, pinned, order, direction, title]
+                                       archived, pinned, order, direction, title, profile]
     }
 
     static let stamp: ISO8601DateFormatter = {
@@ -43,6 +44,7 @@ enum NoteDocument {
             "\(Key.pinned): \(note.pinned)",
             "\(Key.order): \(note.order)",
             "\(Key.direction): \(note.textDirection.rawValue)",
+            "\(Key.profile): \(note.profile)",
         ]
         // An empty title means "derive it from the first line" — a rule the model
         // owns. Writing the derived value out would freeze it, exactly the bug
@@ -93,6 +95,7 @@ enum NoteDocument {
                 case Key.pinned:    note.pinned = (value == "true")
                 case Key.order:     note.order = Double(value) ?? note.order
                 case Key.direction: note.textDirection = NoteTextDirection(rawValue: value) ?? .automatic
+                case Key.profile:   note.profile = Int(value) ?? note.profile
                 case Key.title:     note.title = value
                 default: break
                 }

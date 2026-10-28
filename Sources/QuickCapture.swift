@@ -114,7 +114,7 @@ private struct CaptureView: View {
     /// colour a new note would get.
     private var pal: NoteColor {
         if let targetID, let n = NoteStore.shared.note(id: targetID) { return n.palette }
-        return NoteColor.at(NoteStore.shared.notes.count % NoteColor.all.count)
+        return NoteColor.at(NoteStore.shared.profileNotes.count % NoteColor.all.count)
     }
 
     var body: some View {

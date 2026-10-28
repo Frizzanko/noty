@@ -37,6 +37,43 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 enum Settings {
     private static let d = UserDefaults.standard
     private static let applicationDomain = Bundle.main.bundleIdentifier ?? "app.noty.Noty"
+    /// Active profile index (0 = Personal, 1 = Work) for phase-1 filtering.
+    static var activeProfile: Int {
+        get { (d.object(forKey: "activeProfile") as? Int) ?? 0 }
+        set { d.set(newValue, forKey: "activeProfile") }
+    }
+    // MARK: Profiles
+    static var profiles: [String] {
+        get {
+            if let data = d.data(forKey: "profiles"),
+               let list = try? JSONDecoder().decode([String].self, from: data),
+               !list.isEmpty { return list }
+            return ["Personal", "Work"]
+        }
+        set {
+            let list = newValue.isEmpty ? ["Personal"] : newValue
+            if let data = try? JSONEncoder().encode(list) { d.set(data, forKey: "profiles") }
+        }
+    }
+    static func addProfile(named name: String) {
+        var list = profiles
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        list.append(trimmed.isEmpty ? "New Profile" : trimmed)
+        profiles = list
+    }
+    static func renameProfile(at index: Int, to name: String) {
+        guard profiles.indices.contains(index) else { return }
+        var list = profiles
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty { list[index] = trimmed }
+        profiles = list
+    }
+    static func deleteProfile(at index: Int) {
+        guard profiles.count > 1, profiles.indices.contains(index) else { return }
+        var list = profiles
+        list.remove(at: index)
+        profiles = list
+    }
 
     /// Uses the same application-domain preference as macOS System Settings,
     /// rather than maintaining a second Noty-only language setting.

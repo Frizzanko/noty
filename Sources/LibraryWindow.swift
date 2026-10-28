@@ -97,6 +97,9 @@ struct LibraryView: View {
         .onChange(of: model.mode) { _, _ in
             model.selection = filtered.first?.id
         }
+        .onChange(of: store.activeProfile) { _, _ in
+            model.selection = filtered.first?.id
+        }
         .onAppear {
             if model.selection == nil || store.note(id: model.selection!) == nil {
                 model.selection = filtered.first?.id
@@ -157,6 +160,36 @@ struct LibraryView: View {
 
             Divider()
             HStack(spacing: 12) {
+                Menu {
+                    ForEach(Array(Settings.profiles.enumerated()), id: \.offset) { idx, name in
+                        Button {
+                            NoteStore.shared.setProfile(idx)
+                        } label: {
+                            HStack {
+                                Text(name)
+                                if idx == store.activeProfile {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                    Button(L10n.text("profile.add")) { Settings.addProfile(named: "New Profile"); NoteStore.shared.setProfile(Settings.profiles.count - 1) }
+                    if Settings.profiles.count > 1 {
+                        Button(L10n.text("profile.delete_current"), role: .destructive) {
+                            NoteStore.shared.deleteProfile(at: store.activeProfile)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2.circle")
+                        Text(Settings.profiles.indices.contains(store.activeProfile) ? Settings.profiles[store.activeProfile] : "")
+                            .font(.system(size: 11.5))
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .foregroundStyle(.secondary)
+                .fixedSize()
                 Button { NoteStore.shared.create() } label: {
                     Label(L10n.text("menu.new_note"), systemImage: "plus").font(.system(size: 11.5))
                 }
@@ -164,16 +197,16 @@ struct LibraryView: View {
 
                 Menu {
                     Button(L10n.text("export.markdown_per_note")) {
-                        Transfer.export(.markdown, notes: NoteStore.shared.notes)
+                        Transfer.export(.markdown, notes: NoteStore.shared.profileNotes)
                     }
                     Button(L10n.text("export.plain_per_note")) {
-                        Transfer.export(.plainText, notes: NoteStore.shared.notes)
+                        Transfer.export(.plainText, notes: NoteStore.shared.profileNotes)
                     }
                     Button(L10n.text("export.single_document")) {
-                        Transfer.export(.singleFile, notes: NoteStore.shared.notes)
+                        Transfer.export(.singleFile, notes: NoteStore.shared.profileNotes)
                     }
                     Button(L10n.text("export.sticky_archive")) {
-                        Transfer.export(.stickies, notes: NoteStore.shared.notes)
+                        Transfer.export(.stickies, notes: NoteStore.shared.profileNotes)
                     }
                     Divider()
                     Button(L10n.text("menu.import")) { Transfer.importFiles() }
@@ -231,6 +264,11 @@ struct LibraryView: View {
             }
             Divider()
             Button(L10n.text("action.delete")) { NoteStore.shared.delete(id: note.id) }
+            Menu(L10n.text("action.move_to_profile")) {
+                ForEach(Array(Settings.profiles.enumerated()), id: \.offset) { idx, name in
+                    Button(name) { NoteStore.shared.setNoteProfile(id: note.id, profile: idx) }
+                }
+            }
         }
     }
 

@@ -238,3 +238,11 @@
 "storage.error_help" = "Your original data has been kept. Unsaved edits remain in this session. Resolve the storage problem and try again; Noty will retry saving before quitting.";
 "storage.import_unsaved" = "Some imported notes could not be saved.";
 "import.invalid_archive" = "This archive is invalid or uses an unsupported version.";
+"profile.personal" = "Personal";
+"profile.work" = "Work";
+"action.move_to_profile" = "Move to Profile";
+"menu.profile" = "Profile";
+"profile.migration.title" = "Assign existing notes to a profile";
+"profile.migration.body" = "Choose which profile your existing notes should belong to.";
+"profile.add" = "New Profile";
+"profile.delete_current" = "Delete Current Profile";

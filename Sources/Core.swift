@@ -360,6 +360,7 @@ struct Note: Identifiable, Hashable {
     var pinned: Bool = false
     var textDirection: NoteTextDirection = .automatic
     var order: Double = 0
+    var profile: Int = 0
 
     var palette: NoteColor { NoteColor.at(color) }
 

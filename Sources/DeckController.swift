@@ -635,6 +635,16 @@ final class DeckController: NSObject {
                                   action: #selector(AppDelegate.toggleDeckAlwaysShown), keyEquivalent: "")
         keepOpen.state = Settings.deckAlwaysShown ? .on : .off
         menu.addItem(keepOpen)
+        let profileItem = NSMenuItem(title: L10n.text("menu.profile"), action: nil, keyEquivalent: "")
+        let profileMenu = NSMenu()
+        for (title, value) in [(L10n.text("profile.personal"), 0), (L10n.text("profile.work"), 1)] {
+            let it = NSMenuItem(title: title, action: #selector(AppDelegate.setProfile(_:)), keyEquivalent: "")
+            it.representedObject = value
+            it.state = Settings.activeProfile == value ? .on : .off
+            profileMenu.addItem(it)
+        }
+        profileItem.submenu = profileMenu
+        menu.addItem(profileItem)
 
         let leftEdge = NSMenuItem(title: L10n.text("menu.dock_left"),
                                   action: #selector(AppDelegate.toggleDeckEdge), keyEquivalent: "")
